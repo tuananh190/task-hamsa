@@ -1,62 +1,64 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class UserModel {
   final String id;
-  final String email;
   final String name;
-  final String phone;
-  final String role; // 'admin' or 'employee'
+  final String email;
+  final String role; // 'Admin', 'Staff'
   final bool isActive;
   final String avatarUrl;
+  final DateTime createdAt;
 
   UserModel({
     required this.id,
-    required this.email,
     required this.name,
-    required this.phone,
+    required this.email,
     required this.role,
-    required this.isActive,
-    required this.avatarUrl,
+    this.isActive = true,
+    this.avatarUrl = '',
+    required this.createdAt,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json, String documentId) {
     return UserModel(
       id: documentId,
-      email: json['email'] ?? '',
       name: json['name'] ?? '',
-      phone: json['phone'] ?? '',
-      role: json['role'] ?? 'employee',
+      email: json['email'] ?? '',
+      role: json['role'] ?? 'Staff',
       isActive: json['isActive'] ?? true,
       avatarUrl: json['avatarUrl'] ?? '',
+      createdAt: json['createdAt'] != null
+          ? (json['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'email': email,
       'name': name,
-      'phone': phone,
+      'email': email,
       'role': role,
       'isActive': isActive,
       'avatarUrl': avatarUrl,
+      'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 
   UserModel copyWith({
-    String? id,
-    String? email,
     String? name,
-    String? phone,
+    String? email,
     String? role,
     bool? isActive,
     String? avatarUrl,
   }) {
     return UserModel(
-      id: id ?? this.id,
-      email: email ?? this.email,
+      id: this.id,
       name: name ?? this.name,
-      phone: phone ?? this.phone,
+      email: email ?? this.email,
       role: role ?? this.role,
       isActive: isActive ?? this.isActive,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      createdAt: this.createdAt,
     );
   }
 }

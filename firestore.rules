@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Hàm kiểm tra xem user đã đăng nhập chưa
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Hàm kiểm tra xem user hiện tại có phải là admin không
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.lower() == 'admin';
+    }
+
+    // ---------------------------------------------------------
+    // Bảng Users
+    // - Admin: Toàn quyền Read/Write
+    // - Nhân viên: Chỉ Read thông tin của chính mình
+    // ---------------------------------------------------------
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------
+    // Bảng Products
+    // - Admin: Toàn quyền Read/Write
+    // - Nhân viên: Chỉ Read (chỉ xem, không được thêm/sửa/xoá)
+    // ---------------------------------------------------------
+    match /products/{productId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------
+    // Bảng Orders
+    // - Cả Admin và Nhân viên đều có thể Read và Write để bán hàng
+    // ---------------------------------------------------------
+    match /orders/{orderId} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

@@ -1,70 +1,76 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
-import '../services/auth_service.dart';
-import '../services/user_service.dart';
 
-class UserProvider extends ChangeNotifier {
-  final UserService _userService = UserService();
-  final AuthService _authService = AuthService();
-
+class UserProvider with ChangeNotifier {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  List<UserModel> _users = [];
   bool _isLoading = false;
   String? _error;
 
+  List<UserModel> get users => _users;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  Stream<List<UserModel>> get usersStream => _userService.getUsersStream();
-
-  Future<bool> createEmployee(UserModel newUser, String password) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      // 1. Tạo auth trên Secondary App
-      var credential = await _authService.createSecondaryAccount(newUser.email, password);
-      
-      // 2. Lưu vào Firestore với ID mới
-      if (credential.user != null) {
-        UserModel userToSave = newUser.copyWith(id: credential.user!.uid);
-        await _userService.createUser(userToSave);
+  UserProvider() {
+    // Listen real-time
+    _firestore.collection('users').orderBy('createdAt', descending: true).snapshots().listen(
+      (snapshot) {
+        _users = snapshot.docs.map((doc) => UserModel.fromJson(doc.data(), doc.id)).toList();
+        notifyListeners();
+      },
+      onError: (e) {
+        _error = e.toString();
+        notifyListeners();
       }
-      
-      _isLoading = false;
-      notifyListeners();
+    );
+  }
+
+  Future<bool> addUser(UserModel user) async {
+    _setLoading(true);
+    try {
+      // Dùng set() với id để đồng nhất id nếu cần, hoặc add()
+      if (user.id.isNotEmpty) {
+        await _firestore.collection('users').doc(user.id).set(user.toJson());
+      } else {
+        await _firestore.collection('users').add(user.toJson());
+      }
+      _setLoading(false);
       return true;
     } catch (e) {
-      _error = e.toString().replaceAll("Exception: ", "");
-      _isLoading = false;
-      notifyListeners();
+      _error = e.toString();
+      _setLoading(false);
       return false;
     }
   }
 
-  Future<bool> updateEmployee(UserModel user) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
+  Future<bool> updateUser(UserModel user) async {
     try {
-      await _userService.updateUser(user);
-      _isLoading = false;
-      notifyListeners();
+      await _firestore.collection('users').doc(user.id).update(user.toJson());
       return true;
-    } catch (e) {
-      _error = e.toString().replaceAll("Exception: ", "");
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<void> toggleUserStatus(String uid, bool currentStatus) async {
-    try {
-      await _userService.toggleUserStatus(uid, !currentStatus);
     } catch (e) {
       _error = e.toString();
       notifyListeners();
+      return false;
     }
+  }
+
+  Future<bool> toggleUserStatus(String id, bool currentStatus) async {
+    try {
+      await _firestore.collection('users').doc(id).update({
+        'isActive': !currentStatus,
+      });
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  void _setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
   }
 }

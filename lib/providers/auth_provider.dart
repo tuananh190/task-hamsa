@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
@@ -18,7 +19,7 @@ class AuthProvider extends ChangeNotifier {
   UserModel? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  bool get isAdmin => _currentUser?.role == 'admin';
+  bool get isAdmin => _currentUser?.role.toLowerCase() == 'admin';
   bool get isAuthenticated => _firebaseUser != null && _currentUser != null && _currentUser!.isActive;
 
   StreamSubscription? _authSubscription;
@@ -70,6 +71,33 @@ class AuthProvider extends ChangeNotifier {
       // Listener sẽ tự động load user details
       return true;
     } catch (e) {
+      // AUTO-SETUP ADMIN ĐẦU TIÊN
+      if (email == 'admin@otakustore.com' && e.toString().contains('Không tìm thấy tài khoản')) {
+        try {
+          // Tạo account thông qua createSecondaryAccount để không rối loạn
+          final uc = await _authService.createSecondaryAccount(email, password);
+          
+          // Ghi dữ liệu admin vào Firestore
+          await FirebaseFirestore.instance.collection('users').doc(uc.user!.uid).set({
+            'name': 'Super Admin',
+            'email': email,
+            'role': 'admin',
+            'isActive': true,
+            'avatarUrl': '',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+          
+          // Sau khi tạo thành công, tiến hành login lại
+          await _authService.signIn(email, password);
+          return true;
+        } catch (setupError) {
+          _error = 'Lỗi khởi tạo admin: ${setupError.toString()}';
+          _isLoading = false;
+          notifyListeners();
+          return false;
+        }
+      }
+
       _error = e.toString().replaceAll("Exception: ", "");
       _isLoading = false;
       notifyListeners();

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1022938722350",
+    "project_id": "task-hamsa",
+    "storage_bucket": "task-hamsa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1022938722350:android:c13f4efa199e7ada606fbf",
+        "android_client_info": {
+          "package_name": "com.hamsa.task_hamsa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAf1m9Fo4uLfbTJLqvykkO2sNJGiVMcpM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
