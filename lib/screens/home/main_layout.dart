@@ -41,13 +41,14 @@ class MainLayout extends StatelessWidget {
   }
 
   int _getSelectedIndex(String location, bool isAdmin) {
-    if (location.startsWith(AppRoutes.terminal)) return 0;
-    if (location.startsWith(AppRoutes.products)) return 1;
-    if (location.startsWith(AppRoutes.orders)) return 2;
+    if (location.startsWith(AppRoutes.dashboard)) return 0;
+    if (location.startsWith(AppRoutes.terminal)) return 1;
+    if (location.startsWith(AppRoutes.products)) return 2;
+    if (location.startsWith(AppRoutes.orders)) return 3;
     if (isAdmin) {
-      if (location.startsWith(AppRoutes.users)) return 3;
+      if (location.startsWith(AppRoutes.users)) return 4;
     }
-    return 1; // Default về Inventory
+    return 0; // Default về Dashboard
   }
 
   Widget _buildSidebar({
@@ -59,36 +60,36 @@ class MainLayout extends StatelessWidget {
   }) {
     final List<_NavItem> navItems = [
       const _NavItem(
+        icon: Icons.dashboard_outlined,
+        activeIcon: Icons.dashboard,
+        label: 'Dashboard',
+        route: AppRoutes.dashboard, // [NEW] Thêm tab Dashboard
+      ),
+      const _NavItem(
         icon: Icons.point_of_sale_outlined,
         activeIcon: Icons.point_of_sale,
-        label: 'Terminal',
+        label: 'Bán hàng / Tạo đơn', // [UPDATE]
         route: AppRoutes.terminal,
       ),
       const _NavItem(
         icon: Icons.inventory_2_outlined,
         activeIcon: Icons.inventory_2,
-        label: 'Inventory',
+        label: 'Kho hàng', // [UPDATE]
         route: AppRoutes.products,
       ),
       const _NavItem(
         icon: Icons.shopping_cart_outlined,
         activeIcon: Icons.shopping_cart,
-        label: 'Orders',
+        label: 'Đơn hàng', // [UPDATE]
         route: AppRoutes.orders,
       ),
       if (isAdmin)
         const _NavItem(
           icon: Icons.people_outline,
           activeIcon: Icons.people,
-          label: 'Customers',
+          label: 'Quản lý nhân viên', // [UPDATE]
           route: AppRoutes.users,
         ),
-      const _NavItem(
-        icon: Icons.analytics_outlined,
-        activeIcon: Icons.analytics,
-        label: 'Analytics',
-        route: '', // Coming soon
-      ),
     ];
 
     return Container(
@@ -215,7 +216,7 @@ class MainLayout extends StatelessWidget {
                   const _NavItem(
                     icon: Icons.settings_outlined,
                     activeIcon: Icons.settings,
-                    label: 'Settings',
+                    label: 'Cài đặt', // [UPDATE]
                     route: AppRoutes.profile,
                   ),
                   GoRouterState.of(context).matchedLocation.startsWith(AppRoutes.profile),
@@ -232,7 +233,7 @@ class MainLayout extends StatelessWidget {
                         const Icon(Icons.logout, color: AppColors.tertiary, size: 20),
                         const SizedBox(width: 16),
                         Text(
-                          'Logout',
+                          'Đăng xuất', // [UPDATE]
                           style: AppTextStyles.bodyMedium.copyWith(color: AppColors.tertiary),
                         ),
                       ],

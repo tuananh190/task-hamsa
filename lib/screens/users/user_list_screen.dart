@@ -16,7 +16,23 @@ class UserListScreen extends StatefulWidget {
 }
 
 class _UserListScreenState extends State<UserListScreen> {
-  String _filterRole = 'All'; // All, Admin, Staff
+  String _filterRole = 'All';
+  final TextEditingController _searchController = TextEditingController(); // [NEW]
+  String _searchQuery = ''; // [NEW]
+
+  @override
+  void initState() { // [NEW]
+    super.initState();
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text.toLowerCase().trim());
+    });
+  }
+
+  @override
+  void dispose() { // [NEW]
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,12 +45,19 @@ class _UserListScreenState extends State<UserListScreen> {
           // Thống kê
           final totalUsers = allUsers.length;
           final activeUsers = allUsers.where((u) => u.isActive).length;
-          final adminUsers = allUsers.where((u) => u.role == 'Admin').length;
+          final adminUsers = allUsers.where((u) => u.role == 'admin').length; // [UPDATE] lowercase
 
           // Lọc data list
-          final displayUsers = _filterRole == 'All' 
-              ? allUsers 
+          var displayUsers = _filterRole == 'All'
+              ? allUsers
               : allUsers.where((u) => u.role == _filterRole).toList();
+          // [NEW] Lọc theo search query (tên hoặc email)
+          if (_searchQuery.isNotEmpty) {
+            displayUsers = displayUsers.where((u) =>
+              u.name.toLowerCase().contains(_searchQuery) ||
+              u.email.toLowerCase().contains(_searchQuery),
+            ).toList();
+          }
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,6 +78,19 @@ class _UserListScreenState extends State<UserListScreen> {
                           style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
+                    ),
+                    // [NEW] Search bar
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: TextFormField(
+                          controller: _searchController,
+                          decoration: const InputDecoration(
+                            hintText: 'Tìm theo tên, email...',
+                            prefixIcon: Icon(Icons.search, size: 20),
+                          ),
+                        ),
+                      ),
                     ),
                     ElevatedButton.icon(
                       onPressed: () => showAddUserModal(context),
@@ -106,8 +142,8 @@ class _UserListScreenState extends State<UserListScreen> {
                                   onSelected: (val) => setState(() => _filterRole = val),
                                   itemBuilder: (context) => [
                                     const PopupMenuItem(value: 'All', child: Text('Tất cả')),
-                                    const PopupMenuItem(value: 'Admin', child: Text('Chỉ Admin')),
-                                    const PopupMenuItem(value: 'Staff', child: Text('Chỉ Nhân viên')),
+                                    const PopupMenuItem(value: 'admin', child: Text('Chỉ Admin')), // [UPDATE] lowercase
+                                    const PopupMenuItem(value: 'employee', child: Text('Chỉ Nhân viên')), // [UPDATE] lowercase
                                   ],
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -124,19 +160,10 @@ class _UserListScreenState extends State<UserListScreen> {
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                            OutlinedButton(
-                              onPressed: () {},
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.textPrimary,
-                                side: const BorderSide(color: AppColors.border),
-                                padding: const EdgeInsets.all(12),
-                                minimumSize: const Size(0, 0),
+                                ],
                               ),
-                              child: const Icon(Icons.file_download_outlined, size: 20),
-                            ),
-                          ],
+                              // Đã xóa nút tải về không sử dụng
+                            ],
                         ),
                       ),
 
@@ -167,7 +194,7 @@ class _UserListScreenState extends State<UserListScreen> {
                                   final user = displayUsers[index];
                                   final bool isActive = user.isActive;
                                   final String role = user.role;
-                                  final bool isAdmin = role == 'Admin';
+                                  final bool isAdmin = role == 'admin'; // [UPDATE] lowercase
 
                                   return Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -233,9 +260,16 @@ class _UserListScreenState extends State<UserListScreen> {
                                             ],
                                           ),
                                         ),
-                                        const SizedBox(
+                                        SizedBox(
                                           width: 60,
-                                          child: Icon(Icons.more_horiz, color: AppColors.neutral),
+                                          child: InkWell( // [UPDATE] kích hoạt nút “...”
+                                            onTap: () => showEditUserModal(context, user),
+                                            borderRadius: BorderRadius.circular(4),
+                                            child: const Padding(
+                                              padding: EdgeInsets.all(8),
+                                              child: Icon(Icons.edit_outlined, color: AppColors.neutral, size: 20),
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),

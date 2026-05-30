@@ -116,6 +116,21 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // [NEW] Xác thực lại (re-authenticate) trước khi đổi mật khẩu
+  Future<void> reauthenticate(String currentPassword) async {
+    await _authService.reauthenticate(currentPassword);
+  }
+
+  // [NEW] Gửi email đặt lại mật khẩu
+  Future<void> resetPassword(String email) async {
+    await _authService.resetPassword(email);
+  }
+
+  // [NEW] Đổi mật khẩu sau khi đã re-auth thành công
+  Future<void> changePassword(String newPassword) async {
+    await _authService.updatePassword(newPassword);
+  }
+
   @override
   void dispose() {
     _authSubscription?.cancel();

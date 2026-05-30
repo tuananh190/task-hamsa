@@ -30,6 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _obscureOld = true;
   bool _obscureNew = true;
   bool _isUploading = false;
+  bool _isSavingPassword = false; // [NEW] trạng thái riêng cho đổi pass
   String? _tempAvatarUrl;
 
   @override
@@ -40,7 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final user = context.read<AuthProvider>().currentUser;
       if (user != null) {
         _nameController.text = user.name;
-        _phoneController.text = '+84 123 456 789';
+        _phoneController.text = user.phone; // [UPDATE] Lấy số thật từ DB, không hardcode
         _tempAvatarUrl = user.avatarUrl;
       }
     });
@@ -90,11 +91,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
                     onPressed: () async {
-                      if (user == null) return;
+                      // [NEW] Logic đổi mật khẩu với re-authenticate bắt buộc
+                    if (_oldPasswordController.text.isNotEmpty || _newPasswordController.text.isNotEmpty) {
+                      if (_oldPasswordController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Vui lòng nhập mật khẩu hiện tại.')),
+                        );
+                        return;
+                      }
+                      if (_newPasswordController.text.length < 6) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Mật khẩu mới phải tối thiểu 6 ký tự.')),
+                        );
+                        return;
+                      }
+                      setState(() => _isSavingPassword = true);
+                      try {
+                        // Bước 1: Re-authenticate trước khi đổi pass
+                        await context.read<AuthProvider>().reauthenticate(
+                          _oldPasswordController.text,
+                        );
+                        // Bước 2: Cập nhật mật khẩu mới
+                        await context.read<AuthProvider>().changePassword(
+                          _newPasswordController.text,
+                        );
+                        if (mounted) {
+                          _oldPasswordController.clear();
+                          _newPasswordController.clear();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Đổi mật khẩu thành công!')),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Lỗi: ${e.toString().replaceAll("Exception: ", "")}')),
+                          );
+                        }
+                      } finally {
+                        if (mounted) setState(() => _isSavingPassword = false);
+                      }
+                    }
+
+                    if (user == null) return;
                       
-                      // 1. Cập nhật thông tin User model
+                      // [UPDATE] Lưu cả phone khi bấm LUU THAY ĐỔI
                       final updatedUser = user.copyWith(
                         name: _nameController.text,
+                        phone: _phoneController.text, // [UPDATE]
                         avatarUrl: _tempAvatarUrl ?? user.avatarUrl,
                       );
                       
@@ -247,6 +291,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 24),
           const Divider(),
+          const SizedBox(height: 24),
+          // [UPDATE] Nhóm Email & Vai trò thành 1 hàng và khoá không cho sửa
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('EMAIL', style: AppTextStyles.labelMonoSmall),
+                    const SizedBox(height: 8),
+                    Consumer<AuthProvider>(
+                      builder: (context, auth, _) => TextFormField(
+                        initialValue: auth.currentUser?.email ?? '',
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.mail_outline, size: 18),
+                          suffixIcon: const Icon(Icons.lock_outline, size: 14),
+                          fillColor: AppColors.surfaceElevated, // Làm mờ nền
+                          filled: true,
+                        ),
+                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('VAI TRÒ (ROLE)', style: AppTextStyles.labelMonoSmall),
+                    const SizedBox(height: 8),
+                    Consumer<AuthProvider>(
+                      builder: (context, auth, _) {
+                        return TextFormField(
+                          initialValue: auth.isAdmin ? 'Quản trị viên (Admin)' : 'Nhân viên (Employee)',
+                          readOnly: true,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
+                            suffixIcon: const Icon(Icons.lock_outline, size: 14),
+                            fillColor: AppColors.surfaceElevated, // Làm mờ nền
+                            filled: true,
+                          ),
+                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
           Row(
             children: [

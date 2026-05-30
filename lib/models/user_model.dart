@@ -4,9 +4,10 @@ class UserModel {
   final String id;
   final String name;
   final String email;
-  final String role; // 'Admin', 'Staff'
+  final String role; // [UPDATE] Luôn lưu dạng lowercase: 'admin', 'employee'
   final bool isActive;
   final String avatarUrl;
+  final String phone; // [UPDATE] Thêm field SĐT
   final DateTime createdAt;
 
   UserModel({
@@ -16,6 +17,7 @@ class UserModel {
     required this.role,
     this.isActive = true,
     this.avatarUrl = '',
+    this.phone = '', // [UPDATE]
     required this.createdAt,
   });
 
@@ -24,9 +26,10 @@ class UserModel {
       id: documentId,
       name: json['name'] ?? '',
       email: json['email'] ?? '',
-      role: json['role'] ?? 'Staff',
+      role: (json['role'] ?? 'employee').toLowerCase(), // [UPDATE] Chuẩn hóa về lowercase
       isActive: json['isActive'] ?? true,
       avatarUrl: json['avatarUrl'] ?? '',
+      phone: json['phone'] ?? '', // [UPDATE]
       createdAt: json['createdAt'] != null
           ? (json['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
@@ -37,9 +40,10 @@ class UserModel {
     return {
       'name': name,
       'email': email,
-      'role': role,
+      'role': role, // [UPDATE] Đã là lowercase từ fromJson/copyWith
       'isActive': isActive,
       'avatarUrl': avatarUrl,
+      'phone': phone, // [UPDATE]
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -50,6 +54,7 @@ class UserModel {
     String? role,
     bool? isActive,
     String? avatarUrl,
+    String? phone, // [UPDATE]
   }) {
     return UserModel(
       id: this.id,
@@ -58,6 +63,7 @@ class UserModel {
       role: role ?? this.role,
       isActive: isActive ?? this.isActive,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      phone: phone ?? this.phone, // [UPDATE]
       createdAt: this.createdAt,
     );
   }

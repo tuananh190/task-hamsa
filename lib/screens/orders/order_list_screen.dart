@@ -26,6 +26,22 @@ class OrderListScreen extends StatefulWidget {
 class _OrderListScreenState extends State<OrderListScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _filterStatus = 'all';
+  String _searchQuery = ''; // [NEW]
+  DateTimeRange? _filterDateRange; // [NEW] Lọc theo khoảng thời gian
+
+  @override
+  void initState() { // [NEW] Lắng nghe thay đổi tìm kiếm
+    super.initState();
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text.toLowerCase().trim());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +109,62 @@ class _OrderListScreenState extends State<OrderListScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 16),
+                // [NEW] Nút chọn khoảng thời gian
+                Container(
+                  decoration: BoxDecoration(
+                    color: _filterDateRange == null ? AppColors.surfaceElevated : AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _filterDateRange == null ? AppColors.border : AppColors.primary),
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.calendar_month_outlined,
+                      color: _filterDateRange == null ? AppColors.neutral : AppColors.primary,
+                    ),
+                    onPressed: () async {
+                      final picked = await showDateRangePicker(
+                        context: context,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                        initialDateRange: _filterDateRange,
+                        builder: (context, child) {
+                          return Theme(
+                            data: ThemeData.dark().copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: AppColors.primary,
+                                onPrimary: AppColors.background,
+                                surface: AppColors.surfaceElevated,
+                                onSurface: AppColors.textPrimary,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (picked != null) {
+                        // Kéo dài đến cuối ngày cho endDate
+                        setState(() {
+                          _filterDateRange = DateTimeRange(
+                            start: picked.start,
+                            end: DateTime(picked.end.year, picked.end.month, picked.end.day, 23, 59, 59),
+                          );
+                        });
+                      } else {
+                        // Xóa filter nếu người dùng cancel và muốn reset
+                        // (Thực tế người dùng có thể muốn giữ cũ, ở đây ta cứ giữ hoặc xóa tùy ý. Để xóa thì thêm nút X ở UI)
+                      }
+                    },
+                  ),
+                ),
+                if (_filterDateRange != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: IconButton(
+                      icon: const Icon(Icons.clear, color: AppColors.error),
+                      onPressed: () => setState(() => _filterDateRange = null),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -136,9 +208,23 @@ class _OrderListScreenState extends State<OrderListScreen> {
                         }
                         
                         var orders = snapshot.data ?? [];
-                        // Áp dụng bộ lọc local
+                        // Áp dụng bộ lọc trạng thái
                         if (_filterStatus != 'all') {
                           orders = orders.where((o) => o.status == _filterStatus).toList();
+                        }
+                        // [NEW] Áp dụng bộ lọc search theo mã đơn hoặc tên KH
+                        if (_searchQuery.isNotEmpty) {
+                          orders = orders.where((o) =>
+                            o.id.toLowerCase().contains(_searchQuery) ||
+                            o.customerName.toLowerCase().contains(_searchQuery),
+                          ).toList();
+                        }
+                        // [NEW] Áp dụng bộ lọc thời gian
+                        if (_filterDateRange != null) {
+                          orders = orders.where((o) =>
+                            o.createdAt.isAfter(_filterDateRange!.start) &&
+                            o.createdAt.isBefore(_filterDateRange!.end)
+                          ).toList();
                         }
 
                         if (orders.isEmpty) {
@@ -166,18 +252,18 @@ class _OrderListScreenState extends State<OrderListScreen> {
                                   children: [
                                     Expanded(
                                       flex: 2,
-                                      child: Text(
+                                      child: SelectableText(
                                         '#${order.id.substring(Math.max(0, order.id.length - 6)).toUpperCase()}',
                                         style: AppTextStyles.labelMono.copyWith(color: AppColors.primary),
                                       ),
                                     ),
                                     Expanded(
                                       flex: 3,
-                                      child: Text(order.customerName, style: AppTextStyles.bodyMedium),
+                                      child: SelectableText(order.customerName, style: AppTextStyles.bodyMedium),
                                     ),
                                     Expanded(
                                       flex: 2,
-                                      child: Text(currencyFormat.format(order.totalAmount), style: AppTextStyles.labelMono),
+                                      child: SelectableText(currencyFormat.format(order.totalAmount), style: AppTextStyles.labelMono),
                                     ),
                                     Expanded(
                                       flex: 3,
@@ -211,6 +297,7 @@ class _OrderListScreenState extends State<OrderListScreen> {
                                       child: Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
+                                          // [UPDATE] Nút ✔: Chỉ hiện duy nhất khi đơn đang "Chờ xử lý" (processing)
                                           if (isAdmin && order.status == 'processing')
                                             InkWell(
                                               onTap: () {
@@ -218,9 +305,11 @@ class _OrderListScreenState extends State<OrderListScreen> {
                                               },
                                               child: const Icon(Icons.check, color: AppColors.secondary, size: 20),
                                             ),
-                                          if (order.status == 'new_order' || (isAdmin && order.status == 'processing'))
+                                          
+                                          // [UPDATE] Nút X (Hủy đơn): Tuyệt đối chỉ hiện khi đơn là "new_order"
+                                          if (order.status == 'new_order')
                                             Padding(
-                                              padding: const EdgeInsets.only(left: 8),
+                                              padding: EdgeInsets.only(left: (isAdmin && order.status == 'processing') ? 8.0 : 0.0),
                                               child: InkWell(
                                                 onTap: () {
                                                   context.read<OrderProvider>().cancelOrder(order.id);

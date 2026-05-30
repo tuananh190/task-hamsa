@@ -18,6 +18,7 @@ class OrderProvider extends ChangeNotifier {
   Future<bool> createOrderFromCart({
     required CartProvider cart,
     required UserModel currentUser,
+    required String customerName, // [NEW] Tên khách lẻ do UI truyền vào
     required String note,
   }) async {
     if (cart.items.isEmpty) {
@@ -31,15 +32,11 @@ class OrderProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // FIX BUG 3 (phần 1/2): KHÔNG tự tạo ID bằng timestamp
-      // VẤN ĐỀ CŨ: DateTime.now().millisecondsSinceEpoch.toString()
-      //   → 2 nhân viên tạo đơn cùng millisecond = cùng ID = ghi đè nhau = mất đơn hàng!
-      // GIẢI PHÁP: Truyền id rỗng '', để OrderService tự sinh ID từ Firestore
-      //   → Firestore dùng UUID v4 chuẩn: đảm bảo duy nhất toàn cầu
+
       final newOrder = OrderModel(
-        id: '', // OrderService sẽ tự sinh ID từ Firestore (xem order_service.dart)
+        id: '',
         customerId: currentUser.id,
-        customerName: currentUser.name,
+        customerName: customerName, // [UPDATE] Dùng tên do UI truyền vào thay vì currentUser.name
         totalAmount: cart.totalAmount,
         note: note,
         status: 'new_order',

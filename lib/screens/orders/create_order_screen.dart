@@ -25,6 +25,7 @@ class CreateOrderScreen extends StatefulWidget {
 class _CreateOrderScreenState extends State<CreateOrderScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
+  final TextEditingController _customerNameController = TextEditingController(); // [NEW] Tên khách lẻ
   String _selectedCategory = 'Mô hình';
   String _searchQuery = '';
 
@@ -54,8 +55,12 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
 
     bool success = await orderProvider.createOrderFromCart(
       cart: cart,
+      // [UPDATE] Dùng tên khách do nhân viên nhập, fallback về 'Khách lẻ'
+      customerName: _customerNameController.text.trim().isNotEmpty
+          ? _customerNameController.text.trim()
+          : 'Khách lẻ',
       currentUser: currentUser,
-      note: 'Khách lẻ. VAT: \$vat - ' + _noteController.text,
+      note: _noteController.text,
     );
 
     if (success && mounted) {
@@ -96,33 +101,24 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('NEO-TOKYO POS', style: AppTextStyles.headlineLarge),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
+                      // [NEW] TextField nhập tên khách lẻ
+                      TextFormField(
+                        controller: _customerNameController,
+                        decoration: const InputDecoration(
+                          hintText: 'Tên khách hàng (bỏ trống nếu khách lẻ)',
+                          prefixIcon: Icon(Icons.person_outline, size: 20),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: TextFormField(
-                              controller: _searchController,
-                              decoration: const InputDecoration(
-                                hintText: 'Tìm kiếm sản phẩm, SKU...',
-                                prefixIcon: Icon(Icons.search, size: 20),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 24),
-                          // Tabs danh mục
-                          Expanded(
-                            flex: 3,
-                            child: Row(
-                              children: [
-                                _buildTab('Mô hình'),
-                                _buildTab('Áo thun'),
-                                _buildTab('Phụ kiện'),
-                              ],
-                            ),
-                          ),
-                        ],
+                      // [UPDATE] Đã xóa Row và dải tab danh mục, chỉ giữ lại TextField Search
+                      TextFormField(
+                        controller: _searchController,
+                        decoration: const InputDecoration(
+                          hintText: 'Tìm kiếm sản phẩm, SKU...',
+                          prefixIcon: Icon(Icons.search, size: 20),
+                        ),
                       ),
                     ],
                   ),

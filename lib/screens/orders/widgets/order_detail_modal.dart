@@ -47,9 +47,11 @@ class _OrderDetailModal extends StatelessWidget {
     final isNew = order.status == 'new_order';
     final isProcessing = order.status == 'processing';
 
-    return Center(
-      child: Container(
-        width: 600,
+    return Material(
+      color: Colors.transparent,
+      child: Center(
+        child: Container(
+          width: 600,
         constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -81,7 +83,7 @@ class _OrderDetailModal extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppColors.primary.withOpacity(0.5)),
                     ),
-                    child: Text(
+                    child: SelectableText(
                       '#${order.id.substring(Math.max(0, order.id.length - 6)).toUpperCase()}',
                       style: AppTextStyles.labelMono.copyWith(color: AppColors.primary),
                     ),
@@ -141,7 +143,7 @@ class _OrderDetailModal extends StatelessWidget {
                               children: [
                                 Text('Khách Hàng', style: AppTextStyles.labelMonoSmall),
                                 const SizedBox(height: 4),
-                                Text(order.customerName, style: AppTextStyles.bodyLarge),
+                                SelectableText(order.customerName, style: AppTextStyles.bodyLarge),
                               ],
                             ),
                           ),
@@ -151,7 +153,7 @@ class _OrderDetailModal extends StatelessWidget {
                               children: [
                                 Text('Số Điện Thoại', style: AppTextStyles.labelMonoSmall),
                                 const SizedBox(height: 4),
-                                Text(
+                                SelectableText(
                                   order.customerPhone.isNotEmpty ? order.customerPhone : 'Không có',
                                   style: AppTextStyles.bodyLarge,
                                 ),
@@ -236,7 +238,7 @@ class _OrderDetailModal extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text('Tổng Cộng', style: AppTextStyles.labelMonoSmall),
-                            Text(
+                            SelectableText(
                               currencyFormat.format(order.totalAmount),
                               style: AppTextStyles.displayLarge.copyWith(fontSize: 40),
                             ),
@@ -257,8 +259,8 @@ class _OrderDetailModal extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  // Nút Hủy Đơn (hiện khi new hoặc processing)
-                  if (isNew || (isAdmin && isProcessing))
+                  // [UPDATE] Nút Hủy Đơn: Tuyệt đối chỉ hiển thị khi đơn là 'new_order'
+                  if (isNew)
                     OutlinedButton.icon(
                       onPressed: () {
                         context.read<OrderProvider>().cancelOrder(order.id);
@@ -276,17 +278,17 @@ class _OrderDetailModal extends StatelessWidget {
                   
                   const SizedBox(width: 16),
                   
-                  // Nút Xử lý (dành cho Admin)
+                  // [UPDATE] Đổi "Xử Lý Ngay" -> "Hoàn thành đơn hàng" và đi thẳng lên completed
                   if (isAdmin && isNew)
                     ElevatedButton.icon(
                       onPressed: () {
-                        context.read<OrderProvider>().updateOrderStatus(order.id, 'processing');
+                        context.read<OrderProvider>().updateOrderStatus(order.id, 'completed');
                         Navigator.pop(context);
                       },
-                      icon: const Icon(Icons.hourglass_bottom, size: 18),
-                      label: const Text('Xử Lý Ngay'),
+                      icon: const Icon(Icons.check_circle_outline, size: 18), // Đổi icon
+                      label: const Text('Hoàn thành đơn hàng'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.secondary,
+                        backgroundColor: AppColors.primary, // Dùng primary vì nó là success action
                         foregroundColor: AppColors.background,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                       ),
@@ -311,6 +313,7 @@ class _OrderDetailModal extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

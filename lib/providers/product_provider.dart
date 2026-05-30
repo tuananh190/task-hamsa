@@ -17,6 +17,10 @@ class ProductProvider extends ChangeNotifier {
   String _searchQuery = '';
   String _searchType = 'name'; // 'name' hoặc 'barcode'
 
+  // [NEW] Trạng thái Pagination
+  int _currentPage = 1;
+  final List<DocumentSnapshot?> _pageCursors = [null]; // Lưu trữ vị trí (cursor) bắt đầu của từng trang
+
   List<ProductModel> get products => _products;
   bool get isLoading => _isLoading;
   bool get isFetchingMore => _isFetchingMore;
@@ -25,66 +29,63 @@ class ProductProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   String get searchType => _searchType;
 
+  // [NEW] Getters cho Pagination
+  int get currentPage => _currentPage;
+  int get totalKnownPages => _pageCursors.length; // Số trang tối đa có thể điều hướng
+
   // Load danh sách trang đầu tiên (reset data)
   Future<void> loadProducts({String? query, String? type}) async {
-    _isLoading = true;
-    _error = null;
     if (query != null) _searchQuery = query;
     if (type != null) _searchType = type;
     
-    _hasMore = true;
-    _lastDoc = null;
+    _pageCursors.clear();
+    _pageCursors.add(null); // Trang 1 bắt đầu không có cursor (null)
+    
+    await goToPage(1);
+  }
+
+  // [NEW] Hàm điều hướng trang (Thay thế loadMoreProducts)
+  Future<void> goToPage(int page) async {
+    // Chỉ cho phép chuyển tới những trang đã biết cursor
+    if (page < 1 || page > _pageCursors.length) return; 
+
+    _isLoading = true;
+    _currentPage = page;
+    _error = null;
     notifyListeners();
 
     try {
+      final startAfter = _pageCursors[page - 1]; // Index bắt đầu từ 0
       final result = await _productService.getProducts(
-        limit: 20,
+        limit: 8, // [UPDATE] Đổi thành 8 sản phẩm / trang
+        startAfter: startAfter,
         searchQuery: _searchQuery,
         searchType: _searchType,
       );
 
       _products = result['products'] as List<ProductModel>;
-      _lastDoc = result['lastDoc'] as DocumentSnapshot?;
-      
-      if (_products.length < 20) {
+      final lastDoc = result['lastDoc'] as DocumentSnapshot?;
+
+      // Nếu trang hiện tại tải đủ 8 items và có lastDoc, lưu cursor cho trang kế tiếp
+      if (_products.length == 8 && lastDoc != null) {
+        _hasMore = true;
+        if (_pageCursors.length <= page) {
+          _pageCursors.add(lastDoc);
+        } else {
+          _pageCursors[page] = lastDoc;
+        }
+      } else {
         _hasMore = false;
+        // Xóa bỏ các cursor dư thừa phía sau nếu trang này không đủ 8 items (trang cuối)
+        if (_pageCursors.length > page) {
+          _pageCursors.removeRange(page, _pageCursors.length);
+        }
       }
     } catch (e) {
       _error = e.toString();
     }
 
     _isLoading = false;
-    notifyListeners();
-  }
-
-  // Load thêm dữ liệu (Pagination)
-  Future<void> loadMoreProducts() async {
-    if (_isFetchingMore || !_hasMore) return;
-
-    _isFetchingMore = true;
-    notifyListeners();
-
-    try {
-      final result = await _productService.getProducts(
-        limit: 20,
-        startAfter: _lastDoc,
-        searchQuery: _searchQuery,
-        searchType: _searchType,
-      );
-
-      final newProducts = result['products'] as List<ProductModel>;
-      _lastDoc = result['lastDoc'] as DocumentSnapshot?;
-
-      if (newProducts.isEmpty || newProducts.length < 20) {
-        _hasMore = false;
-      }
-
-      _products.addAll(newProducts);
-    } catch (e) {
-      _error = e.toString();
-    }
-
-    _isFetchingMore = false;
     notifyListeners();
   }
 

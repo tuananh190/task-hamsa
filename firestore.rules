@@ -2,43 +2,71 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Hàm kiểm tra xem user đã đăng nhập chưa
+    // =========================================================================
+    // Helper Functions
+    // =========================================================================
+
+    // Kiểm tra user đã xác thực chưa
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Hàm kiểm tra xem user hiện tại có phải là admin không
+    // Đọc role từ document /users/{uid} và so sánh lowercase
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
     function isAdmin() {
-      return isAuthenticated() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.lower() == 'admin';
+      return isAuthenticated() && getUserRole().lower() == 'admin';
     }
 
-    // ---------------------------------------------------------
-    // Bảng Users
-    // - Admin: Toàn quyền Read/Write
-    // - Nhân viên: Chỉ Read thông tin của chính mình
-    // ---------------------------------------------------------
+    function isEmployee() {
+      return isAuthenticated() && getUserRole().lower() == 'employee';
+    }
+
+    // Kiểm tra tài khoản có đang hoạt động không
+    function isActive() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isActive == true;
+    }
+
+    // =========================================================================
+    // Collection: users
+    // - Ai cũng có thể đọc bảng users (để lấy tên NV tạo đơn, v.v.)
+    // - Admin có toàn quyền thao tác (Create, Delete, Update)
+    // - Employee chỉ được phép Update vào doc của chính mình (chặn đổi role)
+    // =========================================================================
     match /users/{userId} {
-      allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
-      allow write: if isAdmin();
+      allow read: if isAuthenticated() && isActive();
+      
+      allow create, delete: if isAdmin() && isActive();
+      
+      allow update: if isActive() && (
+        isAdmin() || 
+        (request.auth.uid == userId && request.resource.data.role == resource.data.role)
+      );
     }
 
-    // ---------------------------------------------------------
-    // Bảng Products
-    // - Admin: Toàn quyền Read/Write
-    // - Nhân viên: Chỉ Read (chỉ xem, không được thêm/sửa/xoá)
-    // ---------------------------------------------------------
+    // =========================================================================
+    // Collection: products
+    // - Admin: Toàn quyền (thêm/sửa/xóa/đọc)
+    // - Employee: CHỈ ĐỌC (read-only, không được write)
+    // =========================================================================
     match /products/{productId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read: if isAuthenticated() && isActive();
+      allow write: if isAdmin() && isActive(); // Employee bị chặn hoàn toàn
     }
 
-    // ---------------------------------------------------------
-    // Bảng Orders
-    // - Cả Admin và Nhân viên đều có thể Read và Write để bán hàng
-    // ---------------------------------------------------------
+    // =========================================================================
+    // Collection: orders
+    // - Admin: Toàn quyền
+    // - Employee: Đọc và tạo đơn hàng mới, cập nhật trạng thái
+    //   (không được xóa vĩnh viễn)
+    // =========================================================================
     match /orders/{orderId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated() && isActive();
+      allow create: if isAuthenticated() && isActive();
+      allow update: if isAuthenticated() && isActive();
+      allow delete: if isAdmin() && isActive(); // Chỉ Admin mới được xóa
     }
   }
 }

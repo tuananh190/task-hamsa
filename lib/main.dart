@@ -14,6 +14,7 @@ import 'providers/product_provider.dart';
 import 'providers/order_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/profile_provider.dart';
+import 'providers/dashboard_provider.dart'; // [NEW]
 
 void main() async {
   // Bước 1: Đảm bảo Flutter engine đã khởi động trước khi gọi native code
@@ -57,6 +58,9 @@ class OtakuStoreApp extends StatelessWidget {
 
         // ProfileProvider: Cập nhật profile + avatar + đổi mật khẩu
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+
+        // DashboardProvider: Logic tính toán thông số trang chủ
+        ChangeNotifierProvider(create: (_) => DashboardProvider()), // [NEW]
       ],
 
       // Builder để truy cập AuthProvider sau khi đã khởi tạo

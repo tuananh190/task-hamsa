@@ -96,21 +96,37 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: () async {
                 Navigator.pop(ctx);
                 final email = resetEmailController.text.trim();
-                if (email.isEmpty) return;
+                if (email.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Vui lòng nhập email.')),
+                  );
+                  return;
+                }
+                // [UPDATE] Gọi đúng hàm resetPassword thay vì logout()
                 try {
-                  // Gọi thẳng AuthProvider vì không cần provider reset password riêng
-                  await context.read<AuthProvider>().logout(); // Đảm bảo state sạch
+                  await context.read<AuthProvider>().resetPassword(email);
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('✅ Đã gửi email đặt lại mật khẩu!'),
+                      SnackBar(
+                        backgroundColor: Colors.green.shade700,
+                        content: Row(
+                          children: [
+                            const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text('✅ Đã gửi link đặt lại mật khẩu đến $email')),
+                          ],
+                        ),
+                        duration: const Duration(seconds: 4),
                       ),
                     );
                   }
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Lỗi: $e')),
+                      SnackBar(
+                        backgroundColor: Colors.red.shade700,
+                        content: Text('Lỗi: ${e.toString().replaceAll("Exception: ", "")}'),
+                      ),
                     );
                   }
                 }

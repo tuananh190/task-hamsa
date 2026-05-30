@@ -26,6 +26,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
   final _stockController = TextEditingController();
+  final _barcodeController = TextEditingController(); // [NEW] Thêm Controller cho Barcode
   
   String _imageUrl = ''; 
   bool _isUploading = false;
@@ -37,7 +38,11 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       _nameController.text = widget.product!.tradeName;
       _priceController.text = widget.product!.price.toString();
       _stockController.text = widget.product!.stock.toString();
+      _barcodeController.text = widget.product!.barcode;
       _imageUrl = widget.product!.imageUrl;
+    } else {
+      // [NEW] Sinh Barcode ngẫu nhiên nếu thêm mới
+      _barcodeController.text = const Uuid().v4().substring(0, 8).toUpperCase();
     }
   }
 
@@ -53,7 +58,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       tradeName: _nameController.text,
       price: double.tryParse(_priceController.text) ?? 0,
       stock: int.tryParse(_stockController.text) ?? 0,
-      barcode: widget.product?.barcode ?? const Uuid().v4().substring(0, 8),
+      barcode: _barcodeController.text.isNotEmpty ? _barcodeController.text : const Uuid().v4().substring(0, 8), // [UPDATE] Dùng giá trị từ form
       isActive: true,
       imageUrl: _imageUrl,
     );
@@ -122,7 +127,20 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       TextFormField(
                         controller: _nameController,
                         decoration: const InputDecoration(hintText: 'Nhập tên sản phẩm...'),
-                        validator: (val) => (val == null || val.isEmpty) ? 'Bắt buộc' : null,
+                        validator: (val) => (val == null || val.trim().isEmpty) ? 'Tên sản phẩm không được để trống' : null, // [UPDATE] Validate bắt buộc nhập
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // [NEW] Ô NHẬP BARCODE
+                      Text('MÃ VẠCH (BARCODE)', style: AppTextStyles.labelMonoSmall),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _barcodeController,
+                        decoration: const InputDecoration(
+                          hintText: 'Nhập hoặc quét mã vạch...',
+                          prefixIcon: Icon(Icons.qr_code, size: 20),
+                        ),
+                        validator: (val) => (val == null || val.trim().isEmpty) ? 'Mã vạch không được để trống' : null,
                       ),
                       const SizedBox(height: 24),
                       
@@ -139,9 +157,16 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                                   controller: _priceController,
                                   keyboardType: TextInputType.number,
                                   decoration: const InputDecoration(
-                                    hintText: '\$ 0.00',
+                                    hintText: '0',
                                     prefixText: 'đ ',
                                   ),
+                                  // [UPDATE] Validate giá >= 0
+                                  validator: (val) {
+                                    if (val == null || val.trim().isEmpty) return 'Bắt buộc nhập giá';
+                                    final price = double.tryParse(val);
+                                    if (price == null || price < 0) return 'Giá phải lớn hơn hoặc bằng 0';
+                                    return null;
+                                  },
                                 ),
                               ],
                             ),

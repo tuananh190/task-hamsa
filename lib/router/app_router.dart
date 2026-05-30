@@ -22,6 +22,7 @@ import '../screens/orders/order_list_screen.dart';
 import '../screens/orders/create_order_screen.dart';
 import '../screens/users/user_list_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/home/dashboard_screen.dart'; // [NEW]
 
 // -----------------------------------------------------------------------------
 // ROUTE NAMES — Dùng constant thay vì hard-code string để tránh typo
@@ -31,6 +32,7 @@ class AppRoutes {
 
   static const String login = '/login';
   static const String home = '/home';
+  static const String dashboard = '/dashboard'; // [NEW]
   static const String terminal = '/terminal'; // Thêm mới cho Terminal (POS)
   static const String products = '/products';
   static const String productAdd = '/products/add';
@@ -100,6 +102,13 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       ShellRoute(
         builder: (context, state, child) => MainLayout(child: child),
         routes: [
+          // Tab 0: Dashboard (Trang chủ) [NEW]
+          GoRoute(
+            path: AppRoutes.dashboard,
+            name: 'dashboard',
+            builder: (context, state) => const DashboardScreen(),
+          ),
+
           // Tab 1: Terminal (POS / Tạo đơn)
           GoRoute(
             path: AppRoutes.terminal,
@@ -149,11 +158,11 @@ GoRouter createAppRouter(AuthProvider authProvider) {
             builder: (context, state) => const ProfileScreen(),
           ),
 
-          // Redirect /home → /terminal (màn hình mặc định)
+          // Redirect /home → /dashboard (màn hình mặc định)
           GoRoute(
             path: AppRoutes.home,
             name: 'home',
-            redirect: (context, state) => AppRoutes.terminal,
+            redirect: (context, state) => AppRoutes.dashboard, // [UPDATE]
           ),
         ],
       ),
