@@ -36,7 +36,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       setState(() => _searchQuery = _searchController.text.toLowerCase());
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProductProvider>().loadProducts();
+      context.read<ProductProvider>().fetchPosProducts(); // [UPDATE] Gọi hàm fetch riêng cho POS
     });
   }
 
@@ -128,12 +128,12 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                 Expanded(
                   child: Consumer<ProductProvider>(
                     builder: (context, productProvider, child) {
-                      if (productProvider.isLoading && productProvider.products.isEmpty) {
+                      if (productProvider.isLoadingPos && productProvider.posProducts.isEmpty) { // [UPDATE] Dùng state của POS
                         return const Center(child: CircularProgressIndicator());
                       }
                       
-                      // Filter logic
-                      final filteredProducts = productProvider.products.where((p) {
+                      // Filter logic (Tìm kiếm local)
+                      final filteredProducts = productProvider.posProducts.where((p) { // [UPDATE] Dùng data của POS
                         return p.tradeName.toLowerCase().contains(_searchQuery) ||
                                p.barcode.toLowerCase().contains(_searchQuery);
                       }).toList();

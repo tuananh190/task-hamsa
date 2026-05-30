@@ -13,6 +13,10 @@ class ProductProvider extends ChangeNotifier {
   DocumentSnapshot? _lastDoc;
   bool _hasMore = true;
 
+  // [NEW] Dữ liệu dành riêng cho màn hình Terminal POS (Không phân trang)
+  List<ProductModel> _posProducts = [];
+  bool _isLoadingPos = false;
+
   // Trạng thái tìm kiếm
   String _searchQuery = '';
   String _searchType = 'name'; // 'name' hoặc 'barcode'
@@ -22,7 +26,9 @@ class ProductProvider extends ChangeNotifier {
   final List<DocumentSnapshot?> _pageCursors = [null]; // Lưu trữ vị trí (cursor) bắt đầu của từng trang
 
   List<ProductModel> get products => _products;
+  List<ProductModel> get posProducts => _posProducts; // [NEW] Getter cho POS
   bool get isLoading => _isLoading;
+  bool get isLoadingPos => _isLoadingPos; // [NEW] Getter cho POS
   bool get isFetchingMore => _isFetchingMore;
   String? get error => _error;
   bool get hasMore => _hasMore;
@@ -65,9 +71,10 @@ class ProductProvider extends ChangeNotifier {
 
       _products = result['products'] as List<ProductModel>;
       final lastDoc = result['lastDoc'] as DocumentSnapshot?;
+      final snapshotSize = (result['snapshotSize'] ?? 0) as int; // Lấy size thực tế từ Firebase
 
-      // Nếu trang hiện tại tải đủ 8 items và có lastDoc, lưu cursor cho trang kế tiếp
-      if (_products.length == 8 && lastDoc != null) {
+      // [UPDATE] Check theo size của query gốc (snapshotSize == 8) thay vì _products.length (vì client có thể đã lọc bớt isActive=false)
+      if (snapshotSize == 8 && lastDoc != null) {
         _hasMore = true;
         if (_pageCursors.length <= page) {
           _pageCursors.add(lastDoc);
@@ -94,6 +101,24 @@ class ProductProvider extends ChangeNotifier {
     _searchQuery = query;
     _searchType = type;
     loadProducts();
+  }
+
+  // [NEW] Load dữ liệu dành riêng cho POS (limit lớn hơn, không dùng cursor)
+  Future<void> fetchPosProducts() async {
+    _isLoadingPos = true;
+    notifyListeners();
+
+    try {
+      final result = await _productService.getProducts(
+        limit: 30, // Tải 30 sản phẩm ban đầu cho POS
+      );
+      _posProducts = result['products'] as List<ProductModel>;
+    } catch (e) {
+      _error = e.toString();
+    }
+
+    _isLoadingPos = false;
+    notifyListeners();
   }
 
   // Thêm mới sản phẩm

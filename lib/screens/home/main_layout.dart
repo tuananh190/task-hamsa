@@ -62,8 +62,8 @@ class MainLayout extends StatelessWidget {
       const _NavItem(
         icon: Icons.dashboard_outlined,
         activeIcon: Icons.dashboard,
-        label: 'Dashboard',
-        route: AppRoutes.dashboard, // [NEW] Thêm tab Dashboard
+        label: 'Trang chủ', // [UPDATE] Đổi từ "Dashboard" -> "Trang chủ"
+        route: AppRoutes.dashboard,
       ),
       const _NavItem(
         icon: Icons.point_of_sale_outlined,

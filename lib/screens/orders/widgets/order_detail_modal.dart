@@ -256,8 +256,10 @@ class _OrderDetailModal extends StatelessWidget {
             // FOOTER ACTIONS
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 16,
+                runSpacing: 12,
                 children: [
                   // [UPDATE] Nút Hủy Đơn: Tuyệt đối chỉ hiển thị khi đơn là 'new_order'
                   if (isNew)
@@ -276,34 +278,19 @@ class _OrderDetailModal extends StatelessWidget {
                       ),
                     ),
                   
-                  const SizedBox(width: 16),
-                  
-                  // [UPDATE] Đổi "Xử Lý Ngay" -> "Hoàn thành đơn hàng" và đi thẳng lên completed
-                  if (isAdmin && isNew)
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        context.read<OrderProvider>().updateOrderStatus(order.id, 'completed');
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(Icons.check_circle_outline, size: 18), // Đổi icon
-                      label: const Text('Hoàn thành đơn hàng'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary, // Dùng primary vì nó là success action
-                        foregroundColor: AppColors.background,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      ),
-                    ),
-                    
-                  // Nút Hoàn thành (dành cho Admin khi đang xử lý)
-                  if (isAdmin && isProcessing)
+                  // [UPDATE] Nút Hoàn thành: Hiển thị cho TẤT CẢ role (Employee & Admin)
+                  // Gộp chung điều kiện isNew || isProcessing
+                  if (isNew || isProcessing)
                     ElevatedButton.icon(
                       onPressed: () {
                         context.read<OrderProvider>().updateOrderStatus(order.id, 'completed');
                         Navigator.pop(context);
                       },
                       icon: const Icon(Icons.check_circle_outline, size: 18),
-                      label: const Text('Hoàn Thành'),
+                      label: const Text('Hoàn thành đơn hàng'),
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.background,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                       ),
                     ),

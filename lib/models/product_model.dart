@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ProductModel {
   final String id;
   final String internalName;
@@ -7,6 +9,7 @@ class ProductModel {
   final bool isActive;
   final String barcode;
   final String imageUrl;
+  final DateTime? createdAt; // [NEW] Trường ngày tạo
 
   ProductModel({
     required this.id,
@@ -17,6 +20,7 @@ class ProductModel {
     required this.isActive,
     required this.barcode,
     this.imageUrl = '',
+    this.createdAt,
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json, String documentId) {
@@ -29,6 +33,9 @@ class ProductModel {
       isActive: json['isActive'] ?? true,
       barcode: json['barcode'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
+      createdAt: json['createdAt'] is Timestamp 
+          ? (json['createdAt'] as Timestamp).toDate() 
+          : (json['createdAt'] is int ? DateTime.fromMillisecondsSinceEpoch(json['createdAt']) : null),
     );
   }
 
@@ -41,6 +48,7 @@ class ProductModel {
       'isActive': isActive,
       'barcode': barcode,
       'imageUrl': imageUrl,
+      if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
     };
   }
 
@@ -53,6 +61,7 @@ class ProductModel {
     bool? isActive,
     String? barcode,
     String? imageUrl,
+    DateTime? createdAt,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -63,6 +72,7 @@ class ProductModel {
       isActive: isActive ?? this.isActive,
       barcode: barcode ?? this.barcode,
       imageUrl: imageUrl ?? this.imageUrl,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

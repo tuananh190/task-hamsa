@@ -49,11 +49,16 @@ service cloud.firestore {
     // =========================================================================
     // Collection: products
     // - Admin: Toàn quyền (thêm/sửa/xóa/đọc)
-    // - Employee: CHỈ ĐỌC (read-only, không được write)
+    // - Employee: Đọc và Cập nhật (để trừ tồn kho khi bán hàng)
     // =========================================================================
     match /products/{productId} {
       allow read: if isAuthenticated() && isActive();
-      allow write: if isAdmin() && isActive(); // Employee bị chặn hoàn toàn
+      
+      // Admin có toàn quyền tạo mới và xóa
+      allow create, delete: if isAdmin() && isActive();
+      
+      // Cho phép cả Admin và Employee cập nhật sản phẩm (để thay đổi số lượng stock)
+      allow update: if isAuthenticated() && isActive();
     }
 
     // =========================================================================
